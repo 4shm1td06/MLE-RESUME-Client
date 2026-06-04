@@ -1,6 +1,6 @@
 import React, { useMemo } from 'react';
-import { normalizeResume } from '../../../server/src/utils/schema.js';
-import { buildResumeHtml } from '../../../server/src/templates/mleTemplate.js';
+import { normalizeResume } from '../utils/schema.js';
+import { buildResumeHtml } from '../utils/mleTemplate.js';
 
 export function ResumePreview({ data = {} }) {
   const resume = normalizeResume(data);
