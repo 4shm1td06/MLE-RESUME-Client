@@ -539,6 +539,59 @@ function mapAliases(input = {}) {
   };
 }
 
+const KNOWN_FIELDS = new Set([
+  'candidateName', 'candidateInitials', 'title', 'phone', 'email',
+  'linkedin', 'location', 'totalExperience', 'currentCompany',
+  'currentDesignation', 'noticePeriod', 'currentCtc', 'expectedCtc',
+  'highestQualification', 'confidentialLabel', 'maskPersonalDetails',
+  'professionalSummary', 'expertise', 'domainExperience',
+  'toolsAndPlatforms', 'educationalQualification', 'skillGroups',
+  'workHistory', 'technicalExperience', 'projectExperience',
+  'professionalExperience', 'workExperience', 'certifications',
+  'keyAchievements', 'languagesKnown', 'additionalSections',
+  'projects', 'dateOfBirth', 'nationality', 'rawText',
+  'name', 'fullName', 'jobTitle', 'professionalTitle', 'designation',
+  'currentRole', 'mobile', 'contactNumber', 'mobileNumber',
+  'emailAddress', 'linkedinUrl', 'linkedIn', 'linkedInUrl',
+  'city', 'address', 'currentLocation',
+  'summary', 'profileSummary', 'careerSummary', 'executiveSummary',
+  'objective', 'coreExpertise', 'coreCompetencies', 'specializations',
+  'highlights', 'strengths', 'education', 'academicQualification',
+  'qualifications', 'academicBackground',
+  'skills', 'technicalSkills', 'coreSkills', 'keySkills', 'techStack',
+  'employmentHistory', 'careerHistory', 'workHistorySummary',
+  'projectDetails', 'clientProjects', 'projectProfile',
+  'assignments', 'engagements', 'relevantExperience',
+  'engineeringExperience', 'developmentExperience', 'responsibilities',
+  'Certifications', 'certificates', 'certs', 'licenses', 'licences',
+  'courses', 'professionalCertifications',
+  'achievements', 'accomplishments', 'awards', 'keyHighlights',
+  'careerHighlights',
+]);
+
+function collectUnknownSections(input = {}) {
+  const sections = [];
+  for (const [key, value] of Object.entries(input)) {
+    if (KNOWN_FIELDS.has(key)) continue;
+    if (key.startsWith('__')) continue;
+    if (value == null) continue;
+    if (typeof value === 'string' && !value.trim()) continue;
+    if (Array.isArray(value) && value.length === 0) continue;
+
+    if (Array.isArray(value)) {
+      const items = value
+        .map((v) => (v !== null && typeof v === 'object' ? JSON.stringify(v) : String(v)))
+        .filter(Boolean);
+      if (items.length) sections.push({ title: key, items });
+    } else if (typeof value === 'object' && value !== null) {
+      sections.push({ title: key, items: [JSON.stringify(value, null, 2)] });
+    } else {
+      sections.push({ title: key, items: [String(value)] });
+    }
+  }
+  return sections;
+}
+
 const DEFAULT_RESUME = {
   candidateName: '',
   candidateInitials: '',
@@ -737,7 +790,10 @@ export function normalizeResume(input = {}) {
     domainExperience: firstNonEmptyArray(data.domainExperience),
     toolsAndPlatforms: firstNonEmptyArray(data.toolsAndPlatforms),
     languagesKnown: firstNonEmptyArray(data.languagesKnown),
-    additionalSections: Array.isArray(data.additionalSections) ? data.additionalSections : [],
+    additionalSections: [
+      ...(Array.isArray(data.additionalSections) ? data.additionalSections : []),
+      ...collectUnknownSections(input),
+    ],
     confidentialLabel: firstNonEmptyText(
       data.confidentialLabel,
       DEFAULT_RESUME.confidentialLabel
