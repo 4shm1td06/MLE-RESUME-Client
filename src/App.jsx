@@ -100,22 +100,17 @@ export default function App() {
       setMessage(result.message || 'Resume parsed successfully. Review the data and export the final file.');
 
       const newPayload = { ...newData, candidateInitials: (newData.candidateInitials || '').trim() || (newData.candidateName || '').split(/\s+/).filter(Boolean).map((p) => p[0]?.toUpperCase()).slice(0, 3).join('') };
+      // ATS scoring runs in background — doesn't block editing
       setAtsLoading(true);
-      try {
-        const atsResp = await fetch(`${API_BASE_URL}/api/resumes/ats-score`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ resumeData: newPayload, rawText: newExtractedText })
-        });
-        const atsResult = await atsResp.json();
-        if (!atsResp.ok) throw new Error(atsResult.error || 'ATS scoring failed');
-        setAtsScore(atsResult);
-      } catch (atsErr) {
-        if (atsErr.name === 'AbortError') return;
-        setAtsError(atsErr.message);
-      } finally {
-        setAtsLoading(false);
-      }
+      fetch(`${API_BASE_URL}/api/resumes/ats-score`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ resumeData: newPayload, rawText: newExtractedText })
+      })
+        .then(r => r.json())
+        .then(r => { if (r.success !== false) setAtsScore(r); })
+        .catch(err => setAtsError(err.message))
+        .finally(() => setAtsLoading(false));
     } catch (error) {
       if (error.name === 'AbortError') return;
       setMessage(error.message || 'Something went wrong while parsing the resume.');
@@ -188,12 +183,13 @@ export default function App() {
       const response = await fetch(`${API_BASE_URL}/api/resumes/generate-${format}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(buildPayload())
+        body: JSON.stringify({ ...buildPayload(), rawText: extractedText })
       });
       const result = await response.json();
       if (!response.ok) throw new Error(result.error || `${format.toUpperCase()} generation failed.`);
       if (format === 'pdf') {
         setPdfUrl(result.pdfUrl);
+        if (result.atsScore) setAtsScore(result.atsScore);
         setMessage('PDF generated successfully.');
       } else {
         setDocxUrl(result.docxUrl);
