@@ -57,6 +57,17 @@ export default function App() {
   const [pdfUrl, setPdfUrl] = useState('');
   const [docxUrl, setDocxUrl] = useState('');
 
+  function triggerDownload(blob, filename) {
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  }
+
   const [message, setMessage] = useState('Upload a PDF or DOCX resume to convert it into a stronger MLE-style profile and export a recruiter-ready PDF.');
   const [extractedText, setExtractedText] = useState('');
   const [showAts, setShowAts] = useState(false);
@@ -193,19 +204,25 @@ export default function App() {
   const handleGenerate = async () => {
     if (!file && !extractedText) return;
     setLoading(true);
-    setPdfUrl('');
-    setDocxUrl('');
     try {
       const response = await fetch(`${API_BASE_URL}/api/resumes/generate-pdf`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ ...buildPayload(), rawText: extractedText })
       });
-      const result = await response.json();
-      if (!response.ok) throw new Error(result.error || 'PDF generation failed.');
-      setPdfUrl(result.pdfUrl);
-      if (result.atsScore) setAtsScore(result.atsScore);
-      setMessage('PDF generated successfully.');
+      if (!response.ok) {
+        const err = await response.json().catch(() => ({}));
+        throw new Error(err.error || 'PDF generation failed.');
+      }
+      const blob = await response.blob();
+      const cd = response.headers.get('Content-Disposition');
+      const fileName = cd?.match(/filename="?(.+?)"?$/)?.[1] || 'resume.pdf';
+      triggerDownload(blob, fileName);
+      const atsHeader = response.headers.get('X-ATS-Score');
+      if (atsHeader) {
+        try { setAtsScore(JSON.parse(decodeURIComponent(atsHeader))); } catch { /* ignore */ }
+      }
+      setMessage('PDF downloaded successfully.');
     } catch (error) {
       setMessage(error.message || 'Something went wrong while generating the PDF.');
     } finally {
@@ -216,17 +233,21 @@ export default function App() {
   const handleGenerateDocx = async () => {
     if (!file && !extractedText) return;
     setLoading(true);
-    setDocxUrl('');
     try {
       const response = await fetch(`${API_BASE_URL}/api/resumes/generate-docx`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ ...buildPayload(), rawText: extractedText })
       });
-      const result = await response.json();
-      if (!response.ok) throw new Error(result.error || 'DOCX generation failed.');
-      setDocxUrl(result.docxUrl);
-      setMessage('DOCX generated successfully.');
+      if (!response.ok) {
+        const err = await response.json().catch(() => ({}));
+        throw new Error(err.error || 'DOCX generation failed.');
+      }
+      const blob = await response.blob();
+      const cd = response.headers.get('Content-Disposition');
+      const fileName = cd?.match(/filename="?(.+?)"?$/)?.[1] || 'resume.docx';
+      triggerDownload(blob, fileName);
+      setMessage('DOCX downloaded successfully.');
     } catch (error) {
       setMessage(error.message || 'Something went wrong while generating the DOCX.');
     } finally {
@@ -265,8 +286,6 @@ export default function App() {
           <button type="button" className="btn btn-secondary" onClick={handleGenerate} disabled={loading}>Generate PDF</button>
           <button type="button" className="btn btn-secondary" onClick={handleGenerateDocx} disabled={loading}>Generate DOCX</button>
           <button type="button" className="btn btn-secondary" onClick={handleGrammarFix} disabled={loading}>Grammar Fix</button>
-          {pdfUrl ? <a className="btn btn-link" href={`${API_BASE_URL}${pdfUrl}`} target="_blank" rel="noreferrer">Open PDF</a> : null}
-          {docxUrl ? <a className="btn btn-link" href={`${API_BASE_URL}${docxUrl}`} target="_blank" rel="noreferrer">Open DOCX</a> : null}
         </div>
       </section>
 
