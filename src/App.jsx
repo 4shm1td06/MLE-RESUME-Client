@@ -182,25 +182,6 @@ export default function App() {
     }
   };
 
-  const handleGrammarFix = async () => {
-    setLoading(true);
-    try {
-      const response = await fetch(`${API_BASE_URL}/api/resumes/grammar-fix`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ resumeData: buildPayload() })
-      });
-      const result = await response.json();
-      if (!response.ok) throw new Error(result.error || 'Grammar fix failed.');
-      setResumeData((prev) => ({ ...prev, ...result.fixedData }));
-      setMessage(result.message || 'Grammar fixed successfully.');
-    } catch (error) {
-      setMessage(error.message || 'Something went wrong while fixing grammar.');
-    } finally {
-      setLoading(false);
-    }
-  };
-
   const handleGenerate = async () => {
     if (!file && !extractedText) return;
     setLoading(true);
@@ -285,7 +266,7 @@ export default function App() {
           <button type="button" onClick={handleParseButton} disabled={loading} className="btn btn-primary">{loading ? 'Processing…' : 'Parse Resume'}</button>
           <button type="button" className="btn btn-secondary" onClick={handleGenerate} disabled={loading}>Generate PDF</button>
           <button type="button" className="btn btn-secondary" onClick={handleGenerateDocx} disabled={loading}>Generate DOCX</button>
-          <button type="button" className="btn btn-secondary" onClick={handleGrammarFix} disabled={loading}>Grammar Fix</button>
+
         </div>
       </section>
 
