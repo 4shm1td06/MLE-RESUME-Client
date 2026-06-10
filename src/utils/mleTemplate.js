@@ -131,7 +131,7 @@ function renderExperienceBlocks(blocks = []) {
 }
 
 function stripInstitutionName(text) {
-  const s = String(text ?? '').trim();
+  const s = String(text ?? '').replace(/[\r\n]+/g, ' ').replace(/\s+/g, ' ').trim();
   if (!s) return '';
   const dateMatch = s.match(/\(([^)]+)\)\s*$/);
   const dateRange = dateMatch ? `(${dateMatch[1]})` : '';
