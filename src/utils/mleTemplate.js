@@ -133,7 +133,7 @@ function renderExperienceBlocks(blocks = []) {
 function stripInstitutionName(text) {
   const s = String(text ?? '').replace(/[\r\n]+/g, ' ').replace(/\s+/g, ' ').trim();
   if (!s) return '';
-  const dateMatch = s.match(/\(([^)]+)\)\s*$/);
+  const dateMatch = s.match(/\(([^)]*\d{4}[^)]*)\)\s*$/);
   const dateRange = dateMatch ? `(${dateMatch[1]})` : '';
   const before = dateMatch ? s.slice(0, dateMatch.index).replace(/[,\s]+$/, '') : s;
   const fromMatch = before.match(/^(.*?)\s+from\s+(.*)$/i);
