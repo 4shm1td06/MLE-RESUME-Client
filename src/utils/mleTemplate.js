@@ -138,10 +138,10 @@ function stripInstitutionName(text) {
   const before = dateMatch ? s.slice(0, dateMatch.index).replace(/[,\s]+$/, '') : s;
   const fromMatch = before.match(/^(.*?)\s+from\s+(.*)$/i);
   if (fromMatch) return `${fromMatch[1].trim()} ${dateRange}`.trim();
-  const firstComma = before.indexOf(',');
-  if (firstComma > 0) return `${before.slice(0, firstComma).trim()} ${dateRange}`.trim();
   const dashMatch = before.match(/^(.*?)\s+[-–—]\s+(.*)$/);
   if (dashMatch) return `${dashMatch[1].trim()} ${dateRange}`.trim();
+  const firstComma = before.indexOf(',');
+  if (firstComma > 0) return `${before.slice(0, firstComma).trim()} ${dateRange}`.trim();
   return `${before} ${dateRange}`.trim();
 }
 
