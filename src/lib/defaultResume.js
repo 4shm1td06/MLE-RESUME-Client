@@ -31,7 +31,7 @@ export const defaultResume = {
   technicalExperience: [{ role: '', company: '', client: '', duration: '', environment: [''], contributions: [''] }],
   projects: [{ name: '', role: '', duration: '', technologies: [''], highlights: [''] }],
   certifications: [''],
-  additionalSections: [{ title: '', items: [''] }],
+  additionalSections: [],
   confidentialLabel: 'Confidential',
   maskPersonalDetails: true
 };

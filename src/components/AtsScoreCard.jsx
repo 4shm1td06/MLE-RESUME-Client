@@ -1,11 +1,4 @@
-import React from 'react';
-
-function catColor(pct) {
-  if (pct >= 80) return '#22c55e';
-  if (pct >= 60) return '#eab308';
-  if (pct >= 40) return '#f97316';
-  return '#ef4444';
-}
+import { catColor } from '../utils/scoreUtils.jsx';
 
 export default function AtsScoreCard({ score, loading, error, onReadMore }) {
   if (error) {
@@ -57,9 +50,7 @@ export default function AtsScoreCard({ score, loading, error, onReadMore }) {
         </span>
       </div>
 
-      <div className="ats-card-provider">
-        {score.provider === 'openrouter' ? 'AI Analysis' : 'Rule-based'}
-      </div>
+      <div className="ats-card-provider">ATS Analysis</div>
 
       {categories.length > 0 && (
         <div className="ats-card-categories">

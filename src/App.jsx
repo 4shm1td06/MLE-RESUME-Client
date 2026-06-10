@@ -14,6 +14,23 @@ import AtsScoreCard from './components/AtsScoreCard.jsx';
 import JdMatchPanel from './components/JdMatchPanel.jsx';
 import JdMatchCard from './components/JdMatchCard.jsx';
 
+const inputFields = [
+  ['Candidate Name', 'candidateName', 'Enter candidate name'],
+  ['Candidate Initials', 'candidateInitials', 'Auto-generated initials'],
+  ['Title', 'title', 'e.g. SAP Finance Consultant'],
+  ['Phone', 'phone', 'Phone number'],
+  ['Email', 'email', 'Email address'],
+  ['Location', 'location', 'City, State'],
+  ['LinkedIn', 'linkedin', 'LinkedIn URL'],
+  ['Total Experience', 'totalExperience', 'e.g. 7+ Years'],
+  ['Current Company', 'currentCompany', 'Current employer'],
+  ['Current Designation', 'currentDesignation', 'Current title'],
+  ['Notice Period', 'noticePeriod', 'e.g. 30 days'],
+  ['Current CTC', 'currentCtc', 'Current compensation'],
+  ['Expected CTC', 'expectedCtc', 'Expected compensation'],
+  ['Highest Qualification', 'highestQualification', 'Highest degree']
+];
+
 function Section({ title, defaultOpen = true, children }) {
   const [open, setOpen] = useState(defaultOpen);
   return (
@@ -34,13 +51,13 @@ function Section({ title, defaultOpen = true, children }) {
 }
 
 export default function App() {
-  const [resumeData, setResumeData] = useState({ ...defaultResume, maskPersonalDetails: true });
+  const [resumeData, setResumeData] = useState(() => JSON.parse(JSON.stringify({ ...defaultResume, maskPersonalDetails: true })));
   const [file, setFile] = useState(null);
   const [loading, setLoading] = useState(false);
   const [pdfUrl, setPdfUrl] = useState('');
   const [docxUrl, setDocxUrl] = useState('');
-  const [message, setMessage] = useState('Upload a PDF or DOCX resume to convert it into a stronger MLE-style profile and export PDF or DOCX.');
-  const [meta, setMeta] = useState(null);
+
+  const [message, setMessage] = useState('Upload a PDF or DOCX resume to convert it into a stronger MLE-style profile and export a recruiter-ready PDF.');
   const [extractedText, setExtractedText] = useState('');
   const [showAts, setShowAts] = useState(false);
   const [atsScore, setAtsScore] = useState(null);
@@ -71,8 +88,9 @@ export default function App() {
   const buildPayload = () => ({ ...resumeData, candidateInitials: resumeData.candidateInitials?.trim() || initialsSuggestion });
   const payload = useMemo(buildPayload, [resumeData, initialsSuggestion]);
 
-  const isError = message.toLowerCase().includes('fail') || message.toLowerCase().includes('went wrong') || message.toLowerCase().includes('error');
-  const isSuccess = message.toLowerCase().includes('success') || message.toLowerCase().includes('parsed');
+  const msgLower = message.toLowerCase();
+  const isError = msgLower.includes('fail') || msgLower.includes('went wrong') || msgLower.includes('error');
+  const isSuccess = msgLower.includes('success') || msgLower.includes('parsed');
   const statusClass = loading ? 'loading' : isError ? 'error' : isSuccess ? 'success' : '';
 
   const handleParse = async (fileToParse, signal) => {
@@ -81,8 +99,6 @@ export default function App() {
     formData.append('resume', fileToParse);
     setLoading(true);
     setPdfUrl('');
-    setDocxUrl('');
-    setMeta(null);
     setAtsScore(null);
     setAtsError(null);
     setJdResult(null);
@@ -96,7 +112,6 @@ export default function App() {
       newExtractedText = result.extractedText || '';
       setResumeData(newData);
       setExtractedText(newExtractedText);
-      setMeta(result.meta || null);
       setMessage(result.message || 'Resume parsed successfully. Review the data and export the final file.');
 
       const newPayload = { ...newData, candidateInitials: (newData.candidateInitials || '').trim() || (newData.candidateName || '').split(/\s+/).filter(Boolean).map((p) => p[0]?.toUpperCase()).slice(0, 3).join('') };
@@ -175,28 +190,45 @@ export default function App() {
     }
   };
 
-  const handleGenerate = async (format) => {
+  const handleGenerate = async () => {
+    if (!file && !extractedText) return;
     setLoading(true);
     setPdfUrl('');
     setDocxUrl('');
     try {
-      const response = await fetch(`${API_BASE_URL}/api/resumes/generate-${format}`, {
+      const response = await fetch(`${API_BASE_URL}/api/resumes/generate-pdf`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ ...buildPayload(), rawText: extractedText })
       });
       const result = await response.json();
-      if (!response.ok) throw new Error(result.error || `${format.toUpperCase()} generation failed.`);
-      if (format === 'pdf') {
-        setPdfUrl(result.pdfUrl);
-        if (result.atsScore) setAtsScore(result.atsScore);
-        setMessage('PDF generated successfully.');
-      } else {
-        setDocxUrl(result.docxUrl);
-        setMessage('DOCX generated successfully.');
-      }
+      if (!response.ok) throw new Error(result.error || 'PDF generation failed.');
+      setPdfUrl(result.pdfUrl);
+      if (result.atsScore) setAtsScore(result.atsScore);
+      setMessage('PDF generated successfully.');
     } catch (error) {
-      setMessage(error.message || `Something went wrong while generating the ${format.toUpperCase()}.`);
+      setMessage(error.message || 'Something went wrong while generating the PDF.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleGenerateDocx = async () => {
+    if (!file && !extractedText) return;
+    setLoading(true);
+    setDocxUrl('');
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/resumes/generate-docx`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ...buildPayload(), rawText: extractedText })
+      });
+      const result = await response.json();
+      if (!response.ok) throw new Error(result.error || 'DOCX generation failed.');
+      setDocxUrl(result.docxUrl);
+      setMessage('DOCX generated successfully.');
+    } catch (error) {
+      setMessage(error.message || 'Something went wrong while generating the DOCX.');
     } finally {
       setLoading(false);
     }
@@ -208,30 +240,13 @@ export default function App() {
     return null;
   }, [message, loading, file]);
 
-  const inputFields = [
-    ['Candidate Name', 'candidateName', 'Enter candidate name'],
-    ['Candidate Initials', 'candidateInitials', 'Auto-generated initials'],
-    ['Title', 'title', 'e.g. SAP Finance Consultant'],
-    ['Phone', 'phone', 'Phone number'],
-    ['Email', 'email', 'Email address'],
-    ['Location', 'location', 'City, State'],
-    ['LinkedIn', 'linkedin', 'LinkedIn URL'],
-    ['Total Experience', 'totalExperience', 'e.g. 7+ Years'],
-    ['Current Company', 'currentCompany', 'Current employer'],
-    ['Current Designation', 'currentDesignation', 'Current title'],
-    ['Notice Period', 'noticePeriod', 'e.g. 30 days'],
-    ['Current CTC', 'currentCtc', 'Current compensation'],
-    ['Expected CTC', 'expectedCtc', 'Expected compensation'],
-    ['Highest Qualification', 'highestQualification', 'Highest degree']
-  ];
-
   return (
     <div className="app-shell">
       <header className="hero-card card">
         <div className="hero-copy">
           <p className="eyebrow">MLE SYSTEMS</p>
           <h1>Recruiter Resume Formatter</h1>
-          <p className="subtext">Upload a resume, structure it into the MLE format, enrich the candidate profile, and export a recruiter-ready PDF or DOCX.</p>
+          <p className="subtext">Upload a resume, structure it into the MLE format, enrich the candidate profile, and export a recruiter-ready PDF.</p>
         </div>
         <div className="hero-badge-panel">
           <div className="hero-badge"><span className="hero-badge-label">Format</span><strong>MLE PDF / DOCX</strong></div>
@@ -243,15 +258,15 @@ export default function App() {
         <div className="upload-block">
           <label className="upload-label">Resume File</label>
           <input type="file" accept=".pdf,.docx,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document" onChange={(e) => setFile(e.target.files?.[0] || null)} />
-          <p className="helper-text">Supported formats: PDF and DOCX{file ? ` • Selected: ${file.name}` : ''}</p>
+          <p className="helper-text">Supported formats: PDF, DOCX{file ? ` • Selected: ${file.name}` : ''}</p>
         </div>
         <div className="toolbar-actions">
           <button type="button" onClick={handleParseButton} disabled={loading} className="btn btn-primary">{loading ? 'Processing…' : 'Parse Resume'}</button>
-          <button type="button" className="btn btn-secondary" onClick={() => handleGenerate('pdf')} disabled={loading}>Generate PDF</button>
-          <button type="button" className="btn btn-secondary" onClick={() => handleGenerate('docx')} disabled={loading}>Generate DOCX</button>
-          <button type="button" className="btn btn-secondary" onClick={handleGrammarFix} disabled={loading || (!resumeData.candidateName && !resumeData.candidateInitials)}>Grammar Fix</button>
+          <button type="button" className="btn btn-secondary" onClick={handleGenerate} disabled={loading}>Generate PDF</button>
+          <button type="button" className="btn btn-secondary" onClick={handleGenerateDocx} disabled={loading}>Generate DOCX</button>
+          <button type="button" className="btn btn-secondary" onClick={handleGrammarFix} disabled={loading}>Grammar Fix</button>
           {pdfUrl ? <a className="btn btn-link" href={`${API_BASE_URL}${pdfUrl}`} target="_blank" rel="noreferrer">Open PDF</a> : null}
-          {docxUrl ? <a className="btn btn-link" href={docxUrl} target="_blank" rel="noreferrer">Open DOCX</a> : null}
+          {docxUrl ? <a className="btn btn-link" href={`${API_BASE_URL}${docxUrl}`} target="_blank" rel="noreferrer">Open DOCX</a> : null}
         </div>
       </section>
 
@@ -278,12 +293,6 @@ export default function App() {
         </div>
         <p className="status-text">{message}</p>
         {retryLastAction ? <button type="button" className="btn btn-ghost" onClick={retryLastAction} style={{ marginTop: '8px' }}>Retry</button> : null}
-        {meta ? <div className="meta-pill-row">
-          <span className="meta-pill">API used: {meta.apiUsed ? 'Yes' : 'No'}</span>
-          <span className="meta-pill">Fallback used: {meta.fallbackUsed ? 'Yes' : 'No'}</span>
-          {meta.model ? <span className="meta-pill">Model: {meta.model}</span> : null}
-          {meta.reason ? <span className="meta-pill subtle">{meta.reason}</span> : null}
-        </div> : null}
       </section>
 
       <div className="layout-grid">

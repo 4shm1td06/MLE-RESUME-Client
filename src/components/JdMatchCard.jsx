@@ -1,11 +1,4 @@
-import React from 'react';
-
-function catColor(pct) {
-  if (pct >= 80) return '#22c55e';
-  if (pct >= 60) return '#eab308';
-  if (pct >= 40) return '#f97316';
-  return '#ef4444';
-}
+import { catColor } from '../utils/scoreUtils.jsx';
 
 export default function JdMatchCard({ result, loading, error, jobDescription, onReadMore }) {
   if (error) {
@@ -57,9 +50,7 @@ export default function JdMatchCard({ result, loading, error, jobDescription, on
         </span>
       </div>
 
-      <div className="jd-card-provider">
-        {result.provider === 'openrouter' ? 'AI Analysis' : 'Keyword-based'}
-      </div>
+      <div className="jd-card-provider">JD Match Analysis</div>
 
       {categories.length > 0 && (
         <div className="jd-card-categories">
