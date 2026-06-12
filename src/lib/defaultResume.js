@@ -29,6 +29,7 @@ export const defaultResume = {
   ],
   workHistory: [{ company: 'Confidential', role: '', duration: '' }],
   technicalExperience: [{ role: '', company: '', client: '', duration: '', environment: [''], contributions: [''] }],
+  projectExperience: [],
   projects: [{ name: '', role: '', duration: '', technologies: [''], highlights: [''] }],
   certifications: [''],
   additionalSections: [],

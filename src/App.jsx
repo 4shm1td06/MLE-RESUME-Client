@@ -120,6 +120,15 @@ export default function App() {
       const result = await response.json();
       if (!response.ok) throw new Error(result.error || 'Resume parsing failed.');
       const newData = { ...resumeData, ...result.parsedData, maskPersonalDetails: typeof result.parsedData?.maskPersonalDetails === 'boolean' ? result.parsedData.maskPersonalDetails : resumeData.maskPersonalDetails };
+      if (result.parsedData?.projectExperience?.length) {
+        newData.projects = result.parsedData.projectExperience.map(p => ({
+          name: p.role || '',
+          role: '',
+          duration: p.duration || '',
+          technologies: p.technologies || [],
+          highlights: p.contributions || [],
+        }));
+      }
       newExtractedText = result.extractedText || '';
       setResumeData(newData);
       setExtractedText(newExtractedText);
@@ -259,8 +268,8 @@ export default function App() {
       <section className="toolbar card">
         <div className="upload-block">
           <label className="upload-label">Resume File</label>
-          <input type="file" accept=".pdf,.docx,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document" onChange={(e) => setFile(e.target.files?.[0] || null)} />
-          <p className="helper-text">Supported formats: PDF, DOCX{file ? ` • Selected: ${file.name}` : ''}</p>
+          <input type="file" accept=".pdf,.doc,.docx,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document" onChange={(e) => setFile(e.target.files?.[0] || null)} />
+          <p className="helper-text">Supported formats: PDF, DOC, DOCX{file ? ` • Selected: ${file.name}` : ''}</p>
         </div>
         <div className="toolbar-actions">
           <button type="button" onClick={handleParseButton} disabled={loading} className="btn btn-primary">{loading ? 'Processing…' : 'Parse Resume'}</button>
