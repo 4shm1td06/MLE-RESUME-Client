@@ -260,11 +260,18 @@ export function buildResumeHtml(data = {}) {
       )
     : '';
 
-  const projectsSection = hasExperienceData(data.projectExperience)
-    ? renderSection(
-        'Projects',
-        renderExperienceBlocks(data.projectExperience)
-      )
+  const projectsData = hasExperienceData(data.projectExperience)
+    ? data.projectExperience
+    : (Array.isArray(data.projects) ? data.projects.map((p) => ({
+        role: [p.name, p.role].filter(Boolean).join(' - '),
+        duration: p.duration || '',
+        contributions: Array.isArray(p.highlights) ? p.highlights : [],
+        client: '',
+        employer: '',
+        technologies: Array.isArray(p.technologies) ? p.technologies : [],
+      })) : []);
+  const projectsSection = projectsData.length > 0
+    ? renderSection('Projects', renderExperienceBlocks(projectsData))
     : '';
 
   const certificationsSection = hasListData(data.certifications)

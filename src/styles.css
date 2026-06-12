@@ -87,8 +87,6 @@ ul { margin: 0; padding-left: 18px; }
   font-size: 0.85rem;
   color: var(--color-text-secondary);
 }
-.card-body { padding: var(--space-xl); }
-
 /* ===== HERO ===== */
 .hero-card {
   display: flex;
@@ -274,25 +272,6 @@ ul { margin: 0; padding-left: 18px; }
   line-height: 1.5;
   font-size: 0.9rem;
 }
-
-.meta-pill-row {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--space-sm);
-  margin-top: var(--space-md);
-}
-.meta-pill {
-  display: inline-flex;
-  align-items: center;
-  padding: 6px 12px;
-  border-radius: var(--radius-full);
-  background: #f1f5f9;
-  color: var(--color-text);
-  border: 1px solid var(--color-border);
-  font-size: 0.78rem;
-  font-weight: 600;
-}
-.meta-pill.subtle { color: var(--color-text-muted); }
 
 /* ===== LAYOUT GRID ===== */
 .layout-grid {

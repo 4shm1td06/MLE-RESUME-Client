@@ -15,7 +15,6 @@ export function AdditionalSectionsEditor({ items = [], onChange }) {
 
   const addSection = () => onChange([...safeItems, { title: '', items: [''] }]);
   const removeSection = (index) => {
-    if (!window.confirm('Remove this additional section?')) return;
     onChange(safeItems.filter((_, idx) => idx !== index));
   };
   const addItem = (sectionIndex) => updateSection(sectionIndex, { items: [...(safeItems[sectionIndex]?.items || []), ''] });
@@ -45,7 +44,7 @@ export function AdditionalSectionsEditor({ items = [], onChange }) {
           {(section.items || ['']).map((entry, itemIndex) => (
             <div className="inline-row" key={`section-${sectionIndex}-item-${itemIndex}`}>
               <textarea rows="2" value={entry} onChange={(e) => updateItem(sectionIndex, itemIndex, e.target.value)} />
-              <button type="button" className="btn btn-ghost btn-sm btn-icon danger" onClick={() => removeItem(sectionIndex, itemIndex)}>✕</button>
+              <button type="button" className="btn btn-ghost btn-sm btn-icon danger" onClick={() => removeItem(sectionIndex, itemIndex)} aria-label="Remove section item">✕</button>
             </div>
           ))}
 

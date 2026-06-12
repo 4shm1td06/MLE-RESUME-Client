@@ -9,7 +9,6 @@ export function WorkHistoryEditor({ items = [], onChange }) {
 
   const addItem = () => onChange([...safeItems, { company: 'Confidential', role: '', duration: '' }]);
   const removeItem = (index) => {
-    if (!window.confirm('Remove this work history entry?')) return;
     onChange(safeItems.filter((_, idx) => idx !== index));
   };
 

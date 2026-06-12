@@ -15,7 +15,6 @@ export function SkillGroupsEditor({ items = [], onChange }) {
 
   const addGroup = () => onChange([...safeItems, { title: '', items: [''] }]);
   const removeGroup = (index) => {
-    if (!window.confirm('Remove this skill group?')) return;
     onChange(safeItems.filter((_, idx) => idx !== index));
   };
   const addItem = (groupIndex) => updateGroup(groupIndex, { items: [...(safeItems[groupIndex]?.items || []), ''] });
@@ -49,7 +48,7 @@ export function SkillGroupsEditor({ items = [], onChange }) {
                 onChange={(e) => updateItem(groupIndex, itemIndex, e.target.value)}
                 placeholder={`Skill item ${itemIndex + 1}`}
               />
-              <button type="button" className="btn btn-ghost btn-sm btn-icon danger" onClick={() => removeItem(groupIndex, itemIndex)}>✕</button>
+              <button type="button" className="btn btn-ghost btn-sm btn-icon danger" onClick={() => removeItem(groupIndex, itemIndex)} aria-label="Remove skill item">✕</button>
             </div>
           ))}
 

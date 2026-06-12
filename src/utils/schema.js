@@ -639,6 +639,8 @@ const DEFAULT_RESUME = {
   currentCtc: '',
   expectedCtc: '',
   highestQualification: '',
+  dateOfBirth: '',
+  nationality: '',
   confidentialLabel: 'Confidential',
   maskPersonalDetails: true,
   professionalSummary: [],
@@ -701,8 +703,8 @@ export function normalizeResume(input = {}, options = {}) {
       technicalExperience: asArray(
         data.technicalExperience || data.professionalExperience || data.workExperience || data.relevantExperience,
       ),
-      projectExperience: cleanExperienceBlocks(data.projectExperience),
-      projectExperience: asArray(data.projectExperience),
+      projectExperience: cleanExperienceBlocks(asArray(data.projectExperience)),
+      projects: asArray(data.projects),
       certifications: asArray(
         data.certifications || data.Certifications || data.certificates || data.certs || data.licenses || data.licences || data.courses || data.professionalCertifications,
       ),
@@ -713,6 +715,9 @@ export function normalizeResume(input = {}, options = {}) {
         ...(Array.isArray(data.additionalSections) ? data.additionalSections : []),
         ...collectUnknownSections(input),
       ],
+      dateOfBirth: firstNonEmptyTextRaw(data.dateOfBirth),
+      nationality: firstNonEmptyTextRaw(data.nationality),
+      projects: asArray(data.projects),
       confidentialLabel: firstNonEmptyTextRaw(data.confidentialLabel, DEFAULT_RESUME.confidentialLabel),
       maskPersonalDetails: Boolean(data.maskPersonalDetails),
     };
@@ -883,6 +888,9 @@ export function normalizeResume(input = {}, options = {}) {
     domainExperience: Array.isArray(data.domainExperience) ? data.domainExperience : [],
     toolsAndPlatforms: Array.isArray(data.toolsAndPlatforms) ? data.toolsAndPlatforms : [],
     languagesKnown: Array.isArray(data.languagesKnown) ? data.languagesKnown : [],
+    dateOfBirth: firstNonEmptyText(data.dateOfBirth),
+    nationality: firstNonEmptyText(data.nationality),
+    projects: Array.isArray(data.projects) ? data.projects : [],
     additionalSections: [
       ...(Array.isArray(data.additionalSections) ? data.additionalSections : []),
       ...collectUnknownSections(input),

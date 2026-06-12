@@ -15,7 +15,6 @@ export function TechnicalExperienceEditor({ items = [], onChange }) {
 
   const addBlock = () => onChange([...safeItems, { role: '', company: '', client: '', duration: '', environment: [''], contributions: [''] }]);
   const removeBlock = (index) => {
-    if (!window.confirm('Remove this technical experience entry?')) return;
     onChange(safeItems.filter((_, idx) => idx !== index));
   };
   const addListItem = (index, listName) => updateItem(index, { [listName]: [...(safeItems[index]?.[listName] || []), ''] });
@@ -60,7 +59,7 @@ export function TechnicalExperienceEditor({ items = [], onChange }) {
           {(item.environment || ['']).map((entry, envIndex) => (
             <div className="inline-row" key={`exp-${index}-env-${envIndex}`}>
               <input value={entry} onChange={(e) => updateListItem(index, 'environment', envIndex, e.target.value)} placeholder="SAP S/4HANA, FICO, etc." />
-              <button type="button" className="btn btn-ghost btn-sm btn-icon danger" onClick={() => removeListItem(index, 'environment', envIndex)}>✕</button>
+              <button type="button" className="btn btn-ghost btn-sm btn-icon danger" onClick={() => removeListItem(index, 'environment', envIndex)} aria-label="Remove environment item">✕</button>
             </div>
           ))}
           <button type="button" className="btn btn-ghost btn-sm" onClick={() => addListItem(index, 'environment')}>+ Add Environment Item</button>
@@ -69,7 +68,7 @@ export function TechnicalExperienceEditor({ items = [], onChange }) {
           {(item.contributions || ['']).map((entry, contributionIndex) => (
             <div className="inline-row" key={`exp-${index}-c-${contributionIndex}`}>
               <textarea rows="2" value={entry} onChange={(e) => updateListItem(index, 'contributions', contributionIndex, e.target.value)} />
-              <button type="button" className="btn btn-ghost btn-sm btn-icon danger" onClick={() => removeListItem(index, 'contributions', contributionIndex)}>✕</button>
+              <button type="button" className="btn btn-ghost btn-sm btn-icon danger" onClick={() => removeListItem(index, 'contributions', contributionIndex)} aria-label="Remove contribution">✕</button>
             </div>
           ))}
 

@@ -1,8 +1,11 @@
 import { ScoreGauge, CategoryBar } from '../utils/scoreUtils.jsx';
 
 export default function JdMatchPanel({ result, onClose }) {
+  const handleKeyDown = (e) => {
+    if (e.key === 'Escape') onClose();
+  };
   return (
-    <div className="jd-overlay" onClick={onClose}>
+    <div className="jd-overlay" onClick={onClose} onKeyDown={handleKeyDown} role="dialog" aria-modal="true" aria-label="JD Match Analysis">
       <div className="jd-modal" onClick={(e) => e.stopPropagation()}>
         <div className="jd-header">
           <h2>JD Match Analysis</h2>

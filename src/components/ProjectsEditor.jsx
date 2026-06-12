@@ -15,7 +15,6 @@ export function ProjectsEditor({ items = [], onChange }) {
 
   const addProject = () => onChange([...safeItems, { name: '', role: '', duration: '', technologies: [''], highlights: [''] }]);
   const removeProject = (index) => {
-    if (!window.confirm('Remove this project?')) return;
     onChange(safeItems.filter((_, idx) => idx !== index));
   };
   const addListItem = (index, listName) => updateItem(index, { [listName]: [...(safeItems[index]?.[listName] || []), ''] });
@@ -56,7 +55,7 @@ export function ProjectsEditor({ items = [], onChange }) {
           {(item.technologies || ['']).map((entry, itemIndex) => (
             <div className="inline-row" key={`project-${index}-tech-${itemIndex}`}>
               <input value={entry} onChange={(e) => updateList(index, 'technologies', itemIndex, e.target.value)} />
-              <button type="button" className="btn btn-ghost btn-sm btn-icon danger" onClick={() => removeListItem(index, 'technologies', itemIndex)}>✕</button>
+              <button type="button" className="btn btn-ghost btn-sm btn-icon danger" onClick={() => removeListItem(index, 'technologies', itemIndex)} aria-label="Remove technology">✕</button>
             </div>
           ))}
           <button type="button" className="btn btn-ghost btn-sm" onClick={() => addListItem(index, 'technologies')}>+ Add Technology</button>
@@ -65,7 +64,7 @@ export function ProjectsEditor({ items = [], onChange }) {
           {(item.highlights || ['']).map((entry, itemIndex) => (
             <div className="inline-row" key={`project-${index}-highlight-${itemIndex}`}>
               <textarea rows="2" value={entry} onChange={(e) => updateList(index, 'highlights', itemIndex, e.target.value)} />
-              <button type="button" className="btn btn-ghost btn-sm btn-icon danger" onClick={() => removeListItem(index, 'highlights', itemIndex)}>✕</button>
+              <button type="button" className="btn btn-ghost btn-sm btn-icon danger" onClick={() => removeListItem(index, 'highlights', itemIndex)} aria-label="Remove highlight">✕</button>
             </div>
           ))}
 

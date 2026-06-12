@@ -1,8 +1,11 @@
 import { ScoreGauge, CategoryBar } from '../utils/scoreUtils.jsx';
 
 export default function AtsScorePanel({ score, onClose }) {
+  const handleKeyDown = (e) => {
+    if (e.key === 'Escape') onClose();
+  };
   return (
-    <div className="ats-overlay" onClick={onClose}>
+    <div className="ats-overlay" onClick={onClose} onKeyDown={handleKeyDown} role="dialog" aria-modal="true" aria-label="ATS Resume Score">
       <div className="ats-modal" onClick={(e) => e.stopPropagation()}>
         <div className="ats-header">
           <h2>ATS Resume Score</h2>

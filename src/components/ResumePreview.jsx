@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import { useMemo } from 'react';
 import { normalizeResume } from '../utils/schema.js';
 import { buildResumeHtml } from '../utils/mleTemplate.js';
 

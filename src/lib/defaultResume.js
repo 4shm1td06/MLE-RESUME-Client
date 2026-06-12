@@ -34,5 +34,6 @@ export const defaultResume = {
   certifications: [''],
   additionalSections: [],
   confidentialLabel: 'Confidential',
+  rawText: '',
   maskPersonalDetails: true
 };

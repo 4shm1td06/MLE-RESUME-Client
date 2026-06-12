@@ -9,7 +9,6 @@ export function ArrayEditor({ label, items = [], onChange }) {
 
   const addItem = () => onChange([...safeItems, '']);
   const removeItem = (index) => {
-    if (!window.confirm(`Remove this ${label} item?`)) return;
     onChange(safeItems.filter((_, idx) => idx !== index));
   };
   const moveItem = (from, to) => {
@@ -40,9 +39,9 @@ export function ArrayEditor({ label, items = [], onChange }) {
             placeholder={`${label} item ${index + 1}`}
           />
           <div className="btn-group">
-            <button type="button" className="btn btn-ghost btn-sm btn-icon" onClick={() => moveItem(index, index - 1)} disabled={index === 0}>▲</button>
-            <button type="button" className="btn btn-ghost btn-sm btn-icon" onClick={() => moveItem(index, index + 1)} disabled={index === safeItems.length - 1}>▼</button>
-            <button type="button" className="btn btn-ghost btn-sm btn-icon danger" onClick={() => removeItem(index)}>✕</button>
+            <button type="button" className="btn btn-ghost btn-sm btn-icon" onClick={() => moveItem(index, index - 1)} disabled={index === 0} aria-label="Move up">▲</button>
+            <button type="button" className="btn btn-ghost btn-sm btn-icon" onClick={() => moveItem(index, index + 1)} disabled={index === safeItems.length - 1} aria-label="Move down">▼</button>
+            <button type="button" className="btn btn-ghost btn-sm btn-icon danger" onClick={() => removeItem(index)} aria-label={`Remove ${label} item`}>✕</button>
           </div>
         </div>
       ))}

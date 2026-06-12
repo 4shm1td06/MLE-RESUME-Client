@@ -1,4 +1,4 @@
-import { useMemo, useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { API_BASE_URL } from './config.js';
 import { defaultResume } from './lib/defaultResume.js';
 import { ArrayEditor } from './components/ArrayEditor.jsx';
@@ -14,7 +14,7 @@ import AtsScoreCard from './components/AtsScoreCard.jsx';
 import JdMatchPanel from './components/JdMatchPanel.jsx';
 import JdMatchCard from './components/JdMatchCard.jsx';
 
-const inputFields = [
+const personalFields = [
   ['Candidate Name', 'candidateName', 'Enter candidate name'],
   ['Candidate Initials', 'candidateInitials', 'Auto-generated initials'],
   ['Title', 'title', 'e.g. SAP Finance Consultant'],
@@ -22,6 +22,9 @@ const inputFields = [
   ['Email', 'email', 'Email address'],
   ['Location', 'location', 'City, State'],
   ['LinkedIn', 'linkedin', 'LinkedIn URL'],
+];
+
+const professionalFields = [
   ['Total Experience', 'totalExperience', 'e.g. 7+ Years'],
   ['Current Company', 'currentCompany', 'Current employer'],
   ['Current Designation', 'currentDesignation', 'Current title'],
@@ -33,17 +36,26 @@ const inputFields = [
 
 function Section({ title, defaultOpen = true, children }) {
   const [open, setOpen] = useState(defaultOpen);
+  const sectionId = title.replace(/\s+/g, '-').toLowerCase();
   return (
     <div className="form-section">
       <button
         type="button"
+        id={`section-${sectionId}-btn`}
         className={`form-section-toggle${open ? '' : ' collapsed'}`}
         onClick={() => setOpen(!open)}
+        aria-expanded={open}
+        aria-controls={`section-${sectionId}`}
       >
         <span>{title}</span>
-        <span className="collapse-icon">▼</span>
+        <span className="collapse-icon" aria-hidden="true">▼</span>
       </button>
-      <div className={`form-section-content${open ? '' : ' collapsed'}`}>
+      <div
+        id={`section-${sectionId}`}
+        role="region"
+        aria-labelledby={`section-${sectionId}-btn`}
+        className={`form-section-content${open ? '' : ' collapsed'}`}
+      >
         {children}
       </div>
     </div>
@@ -54,8 +66,7 @@ export default function App() {
   const [resumeData, setResumeData] = useState(() => JSON.parse(JSON.stringify({ ...defaultResume, maskPersonalDetails: true })));
   const [file, setFile] = useState(null);
   const [loading, setLoading] = useState(false);
-  const [pdfUrl, setPdfUrl] = useState('');
-  const [docxUrl, setDocxUrl] = useState('');
+
 
   function triggerDownload(blob, filename) {
     const url = URL.createObjectURL(blob);
@@ -81,6 +92,7 @@ export default function App() {
   const [showJd, setShowJd] = useState(false);
 
   const parseAbortRef = useRef(null);
+  const jdTimeoutRef = useRef(null);
 
   useEffect(() => {
     if (!file) return;
@@ -88,16 +100,34 @@ export default function App() {
     const controller = new AbortController();
     parseAbortRef.current = controller;
     handleParse(file, controller.signal);
+    return () => {
+      controller.abort();
+      if (jdTimeoutRef.current) clearTimeout(jdTimeoutRef.current);
+    };
   }, [file]);
 
-  const initialsSuggestion = useMemo(() => {
+  const getInitials = () => {
     if (resumeData.candidateInitials?.trim()) return resumeData.candidateInitials.trim();
     return (resumeData.candidateName || '').split(/\s+/).filter(Boolean).map((part) => part[0]?.toUpperCase()).slice(0, 3).join('');
-  }, [resumeData.candidateInitials, resumeData.candidateName]);
+  };
 
   const update = (key, value) => setResumeData((prev) => ({ ...prev, [key]: value }));
-  const buildPayload = () => ({ ...resumeData, candidateInitials: resumeData.candidateInitials?.trim() || initialsSuggestion });
-  const payload = useMemo(buildPayload, [resumeData, initialsSuggestion]);
+  const buildPayload = () => {
+    const payload = { ...resumeData };
+    payload.candidateInitials = payload.candidateInitials?.trim() || getInitials();
+    if (Array.isArray(payload.projects) && payload.projects.length > 0) {
+      payload.projectExperience = payload.projects.map((p) => ({
+        role: [p.name, p.role].filter(Boolean).join(' - '),
+        duration: p.duration || '',
+        contributions: Array.isArray(p.highlights) ? p.highlights : [],
+        client: '',
+        employer: '',
+        technologies: Array.isArray(p.technologies) ? p.technologies : [],
+      }));
+    }
+    return payload;
+  };
+  const payload = buildPayload();
 
   const msgLower = message.toLowerCase();
   const isError = msgLower.includes('fail') || msgLower.includes('went wrong') || msgLower.includes('error');
@@ -109,7 +139,6 @@ export default function App() {
     const formData = new FormData();
     formData.append('resume', fileToParse);
     setLoading(true);
-    setPdfUrl('');
     setAtsScore(null);
     setAtsError(null);
     setJdResult(null);
@@ -136,15 +165,29 @@ export default function App() {
 
       const newPayload = { ...newData, candidateInitials: (newData.candidateInitials || '').trim() || (newData.candidateName || '').split(/\s+/).filter(Boolean).map((p) => p[0]?.toUpperCase()).slice(0, 3).join('') };
       // ATS scoring runs in background — doesn't block editing
+      const atsController = new AbortController();
+      parseAbortRef.current = atsController;
       setAtsLoading(true);
       fetch(`${API_BASE_URL}/api/resumes/ats-score`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ resumeData: newPayload, rawText: newExtractedText })
+        body: JSON.stringify({ resumeData: newPayload, rawText: newExtractedText }),
+        signal: atsController.signal
       })
-        .then(r => r.json())
-        .then(r => { if (r.success !== false) setAtsScore(r); })
-        .catch(err => setAtsError(err.message))
+        .then(async (r) => {
+          if (!r.ok) {
+            const errBody = await r.json().catch(() => ({}));
+            throw new Error(errBody.error || `ATS scoring failed (${r.status})`);
+          }
+          return r.json();
+        })
+        .then((r) => {
+          if (r.success === false) throw new Error(r.error || 'ATS score analysis failed');
+          setAtsScore(r);
+        })
+        .catch((err) => {
+          if (err.name !== 'AbortError') setAtsError(err.message);
+        })
         .finally(() => setAtsLoading(false));
     } catch (error) {
       if (error.name === 'AbortError') return;
@@ -192,7 +235,7 @@ export default function App() {
   };
 
   const handleGenerate = async () => {
-    if (!file && !extractedText) return;
+    if (!resumeData.candidateName && !file && !extractedText) return;
     setLoading(true);
     try {
       const response = await fetch(`${API_BASE_URL}/api/resumes/generate-pdf`, {
@@ -206,7 +249,7 @@ export default function App() {
       }
       const blob = await response.blob();
       const cd = response.headers.get('Content-Disposition');
-      const fileName = cd?.match(/filename="?(.+?)"?$/)?.[1] || 'resume.pdf';
+      const fileName = cd?.match(/filename\*?=(?:UTF-8\'\')?"?([^"]+)"?/)?.[1] || 'resume.pdf';
       triggerDownload(blob, fileName);
       const atsHeader = response.headers.get('X-ATS-Score');
       if (atsHeader) {
@@ -221,7 +264,7 @@ export default function App() {
   };
 
   const handleGenerateDocx = async () => {
-    if (!file && !extractedText) return;
+    if (!resumeData.candidateName && !file && !extractedText) return;
     setLoading(true);
     try {
       const response = await fetch(`${API_BASE_URL}/api/resumes/generate-docx`, {
@@ -235,7 +278,7 @@ export default function App() {
       }
       const blob = await response.blob();
       const cd = response.headers.get('Content-Disposition');
-      const fileName = cd?.match(/filename="?(.+?)"?$/)?.[1] || 'resume.docx';
+      const fileName = cd?.match(/filename\*?=(?:UTF-8\'\')?"?([^"]+)"?/)?.[1] || 'resume.docx';
       triggerDownload(blob, fileName);
       setMessage('DOCX downloaded successfully.');
     } catch (error) {
@@ -245,11 +288,7 @@ export default function App() {
     }
   };
 
-  const retryLastAction = useMemo(() => {
-    if (!message || loading) return null;
-    if (isError && file) return () => handleParseButton();
-    return null;
-  }, [message, loading, file]);
+  const showRetry = !loading && isError && file;
 
   return (
     <div className="app-shell">
@@ -267,8 +306,8 @@ export default function App() {
 
       <section className="toolbar card">
         <div className="upload-block">
-          <label className="upload-label">Resume File</label>
-          <input type="file" accept=".pdf,.doc,.docx,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document" onChange={(e) => setFile(e.target.files?.[0] || null)} />
+          <label className="upload-label" htmlFor="resume-file-input">Resume File</label>
+          <input id="resume-file-input" type="file" accept=".pdf,.doc,.docx,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document" onChange={(e) => setFile(e.target.files?.[0] || null)} />
           <p className="helper-text">Supported formats: PDF, DOC, DOCX{file ? ` • Selected: ${file.name}` : ''}</p>
         </div>
         <div className="toolbar-actions">
@@ -284,7 +323,11 @@ export default function App() {
           <label className="upload-label">Job Description</label>
           <textarea
             value={jobDescription}
-            onChange={(e) => { setJobDescription(e.target.value); setJdResult(null); setJdError(null); }}
+            onChange={(e) => {
+              setJobDescription(e.target.value);
+              if (jdTimeoutRef.current) clearTimeout(jdTimeoutRef.current);
+              jdTimeoutRef.current = setTimeout(() => { setJdResult(null); setJdError(null); }, 300);
+            }}
             placeholder="Paste the job description here to compare against the parsed resume..."
             rows={3}
             style={{ resize: 'vertical', fontFamily: 'inherit', fontSize: '0.85rem', padding: '8px 10px', border: '1px solid var(--color-border)', borderRadius: 'var(--radius-sm)' }}
@@ -301,7 +344,7 @@ export default function App() {
           <span className={`status-dot ${loading ? 'loading' : statusClass === 'error' ? 'error' : 'idle'}`} />
         </div>
         <p className="status-text">{message}</p>
-        {retryLastAction ? <button type="button" className="btn btn-ghost" onClick={retryLastAction} style={{ marginTop: '8px' }}>Retry</button> : null}
+        {showRetry ? <button type="button" className="btn btn-ghost" onClick={handleParseButton} style={{ marginTop: '8px' }}>Retry</button> : null}
       </section>
 
       <div className="layout-grid">
@@ -313,12 +356,13 @@ export default function App() {
             </div>
           </div>
 
+          <ErrorBoundary>
           <Section title="Personal Information" defaultOpen={true}>
             <div className="form-grid">
-              {inputFields.slice(0, 7).map(([label, key, placeholder]) => (
+              {personalFields.map(([label, key, placeholder]) => (
                 <div className={`field-block ${['linkedin'].includes(key) ? 'full-span' : ''}`} key={key}>
                   <label>{label}</label>
-                  <input value={resumeData[key] || (key === 'candidateInitials' ? initialsSuggestion : '')} onChange={(e) => update(key, e.target.value)} placeholder={placeholder} />
+                  <input value={resumeData[key] || (key === 'candidateInitials' ? getInitials() : '')} onChange={(e) => update(key, e.target.value)} placeholder={placeholder} />
                 </div>
               ))}
             </div>
@@ -326,7 +370,7 @@ export default function App() {
 
           <Section title="Professional Details" defaultOpen={true}>
             <div className="form-grid">
-              {inputFields.slice(7).map(([label, key, placeholder]) => (
+              {professionalFields.map(([label, key, placeholder]) => (
                 <div className="field-block" key={key}>
                   <label>{label}</label>
                   <input value={resumeData[key] || ''} onChange={(e) => update(key, e.target.value)} placeholder={placeholder} />
@@ -375,6 +419,7 @@ export default function App() {
             <ArrayEditor label="Languages Known" items={resumeData.languagesKnown || []} onChange={(value) => update('languagesKnown', value)} />
             <AdditionalSectionsEditor items={resumeData.additionalSections || []} onChange={(value) => update('additionalSections', value)} />
           </Section>
+          </ErrorBoundary>
         </section>
 
         <div className="right-column">
